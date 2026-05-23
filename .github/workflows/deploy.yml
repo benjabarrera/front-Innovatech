@@ -36,7 +36,12 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Descargar la imagen actualizada
             docker pull benjabarrera/ep2-frontend:latest
+            
+            # Detener y borrar contenedor antiguo
             docker stop frontend || true
             docker rm frontend || true
-            docker run -d --name frontend -p 80:80 benjabarrera/ep2-frontend:latest
+            
+            # Ejecutar el nuevo contenedor mapeando puerto 80 (Host) a 8080 (Contenedor)
+            docker run -d --name frontend -p 80:8080 benjabarrera/ep2-frontend:latest
