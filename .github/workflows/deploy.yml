@@ -37,7 +37,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Descargar la imagen actualizada
-            docker pull benjabarrera/ep2-frontend:latest
+            docker pll benjabarrera/ep2-frontend:latest
             
             # Detener y borrar contenedor antiguo
             docker stop frontend || true
