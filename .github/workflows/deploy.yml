@@ -12,36 +12,37 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v3
 
-      - name: Iniciar sesión en Docker Hub
-        uses: docker/login-action@v2
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: benjabarrera
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
 
-      - name: Construir y subir imagen (Build & Push)
+      - name: Iniciar sesión en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Construir y subir imagen Frontend a ECR
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: benjabarrera/ep2-frontend:latest
+          tags: 994831955535.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:latest
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Desplegar en EC2 por SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            # Descargar la imagen actualizada
-            docker pull benjabarrera/ep2-frontend:latest
-            
-            # Detener y borrar contenedor antiguo
-            docker stop frontend || true
-            docker rm frontend || true
-            
-            # Ejecutar el nuevo contenedor mapeando puerto 80 (Host) a 8080 (Contenedor)
-            docker run -d --name frontend -p 80:8080 benjabarrera/ep2-frontend:latest
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Desplegar en ECS (Fargate)
+        run: |
+          aws ecs update-service --cluster innovatech-cluster --service frontend --force-new-deployment
